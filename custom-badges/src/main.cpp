@@ -1,11 +1,18 @@
 #include "popup.hpp"
 #include <Geode/modify/ProfilePage.hpp>
 #include <Geode/modify/CommentCell.hpp>
+#include <chrono>
 
 void fetchRemoteBadges(std::function<void()> onDone = nullptr) {
     static async::TaskHolder<web::WebResponse> listener;
     web::WebRequest req;
-    std::string url = std::string("https://") + "://githubusercontent.com";
+    auto now = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+    std::string url = fmt::format(
+        "https://githubusercontent.com{}",
+        now
+    );
     listener.spawn(
         req.get(url),
         [onDone = std::move(onDone)](web::WebResponse res) {
@@ -39,38 +46,33 @@ $on_mod(Loaded) {
 class $modify(MyProfilePage, ProfilePage) {
     void refreshCustomBadges() {
         if (!m_score) return;
-        if (auto oldRow = m_mainLayer->getChildByID("custom-profile-badges-row"_spr)) {
-            oldRow->removeFromParent();
+
+        auto usernameMenu = m_mainLayer->getChildByIDRecursive("username-menu");
+        if (!usernameMenu) return;
+
+        std::vector<CCNode*> toRemove;
+        for (auto* child : CCArrayExt<CCNode*>(usernameMenu->getChildren())) {
+            if (child->getID().starts_with("custom-profile-badge-"_spr)) {
+                toRemove.push_back(child);
+            }
         }
+        for (auto* child : toRemove) child->removeFromParent();
+
         auto ids = getAssignedBadgeIDs(m_score->m_accountID);
-        if (auto vanillaBadge = m_mainLayer->getChildByID("mod-badge")) {
+        if (auto vanillaBadge = usernameMenu->getChildByID("mod-badge")) {
             vanillaBadge->setVisible(ids.empty());
         }
-        if (ids.empty()) return;
 
-        if (auto usernameLabel = m_mainLayer->getChildByID("username-label")) {
-            auto row = CCNode::create();
-            row->setID("custom-profile-badges-row"_spr);
-
-            float cursorX = 0.f;
-            float spacing = 4.f;
-            for (int id : ids) {
-                if (auto badge = findBadgeByID(id)) {
-                    auto node = createBadgeNode(*badge, 18.f);
-                    float w = node->getContentSize().width * node->getScaleX();
-                    node->setPosition({ cursorX - (w / 2.f), 0.f });
-                    row->addChild(node);
-                    cursorX -= (w + spacing);
-                }
+        int order = -100;
+        for (int id : ids) {
+            if (auto badge = findBadgeByID(id)) {
+                auto node = createBadgeNode(*badge, 20.f);
+                node->setID(fmt::format("custom-profile-badge-{}"_spr, id));
+                node->setZOrder(order++);
+                usernameMenu->addChild(node);
             }
-
-            float halfWidth = (usernameLabel->getContentSize().width * usernameLabel->getScaleX()) / 2.f;
-            row->setPosition({
-                usernameLabel->getPositionX() - halfWidth - 10.f,
-                usernameLabel->getPositionY()
-            });
-            m_mainLayer->addChild(row, 10);
         }
+        usernameMenu->updateLayout();
     }
 
     void loadPageFromUserInfo(GJUserScore* score) {
