@@ -5,8 +5,9 @@
 void fetchRemoteBadges(std::function<void()> onDone = nullptr) {
     static async::TaskHolder<web::WebResponse> listener;
     web::WebRequest req;
+    std::string url = std::string("https://") + "://githubusercontent.com";
     listener.spawn(
-        req.get("https://githubusercontent.com"),
+        req.get(url),
         [onDone = std::move(onDone)](web::WebResponse res) {
             if (!res.ok()) return;
             auto rawStr = res.string().unwrapOr("");
@@ -42,6 +43,9 @@ class $modify(MyProfilePage, ProfilePage) {
             oldRow->removeFromParent();
         }
         auto ids = getAssignedBadgeIDs(m_score->m_accountID);
+        if (auto vanillaBadge = m_mainLayer->getChildByID("mod-badge")) {
+            vanillaBadge->setVisible(ids.empty());
+        }
         if (ids.empty()) return;
 
         if (auto usernameLabel = m_mainLayer->getChildByID("username-label")) {
@@ -105,6 +109,9 @@ class $modify(MyCommentCell, CommentCell) {
         if (ids.empty()) return;
 
         if (auto usernameMenu = m_mainLayer->getChildByIDRecursive("username-menu")) {
+            if (auto vanillaBadge = usernameMenu->getChildByID("mod-badge")) {
+                vanillaBadge->setVisible(false);
+            }
             for (int id : ids) {
                 if (auto badge = findBadgeByID(id)) {
                     auto node = createBadgeNode(*badge, 13.f);
