@@ -1,8 +1,10 @@
 #pragma once
 #include <Geode/Geode.hpp>
 #include <Geode/utils/web.hpp>
+#include <matjson.hpp>
 #include <algorithm>
 #include <sstream>
+#include <unordered_map>
 
 using namespace geode::prelude;
 
@@ -47,15 +49,23 @@ static const std::vector<BadgeDef> ALL_BADGES = {
     { 29, "Lv:10 Promoter",               "promoter_10.png",      false, "", { 255, 225, 70  } }
 };
 
+inline std::unordered_map<int, std::vector<int>> g_remoteBadges;
+
 inline std::vector<int> getAssignedBadgeIDs(int accountID) {
     std::vector<int> result;
     if (accountID <= 0) return result;
+    if (auto it = g_remoteBadges.find(accountID); it != g_remoteBadges.end()) {
+        result = it->second;
+    }
     auto raw = Mod::get()->getSavedValue<std::string>(fmt::format("badges_{}", accountID), "");
     std::stringstream ss(raw);
     std::string item;
     while (std::getline(ss, item, ',')) {
         if (!item.empty()) {
-            try { result.push_back(std::stoi(item)); } catch (...) {}
+            try {
+                int id = std::stoi(item);
+                if (std::find(result.begin(), result.end(), id) == result.end()) result.push_back(id);
+            } catch (...) {}
         }
     }
     return result;
