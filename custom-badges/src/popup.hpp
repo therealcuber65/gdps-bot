@@ -2,104 +2,112 @@
 #include "badges.hpp"
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/ScrollLayer.hpp>
+#include <cmath>
 
 class BadgeSelectPopup : public geode::Popup {
 protected:
     int m_targetAccountID = 0;
     std::string m_targetUsername;
     std::function<void()> m_onChanged;
-    ScrollLayer* m_scroll = nullptr;
+    geode::ScrollLayer* m_scroll = nullptr;
 
-    void rebuildList() {
+    void rebuildGrid() {
         if (!m_scroll) return;
         float prevY = m_scroll->m_contentLayer->getPositionY();
         m_scroll->m_contentLayer->removeAllChildrenWithCleanup(true);
 
-        float rowHeight = 30.f;
-        int totalRows = static_cast<int>(ALL_BADGES.size()) + 1;
-        float contentHeight = std::max(185.f, totalRows * rowHeight);
-        m_scroll->m_contentLayer->setContentSize({ 320.f, contentHeight });
+        const int cols = 5;
+        const float scrollW = 350.f;
+        const float scrollH = 195.f;
+        const float cellW = scrollW / cols;
+        const float cellH = 82.f;
+
+        int rows = static_cast<int>(std::ceil(static_cast<float>(ALL_BADGES.size()) / cols));
+        float contentH = std::max(scrollH, rows * cellH + 10.f);
+        m_scroll->m_contentLayer->setContentSize({ scrollW, contentH });
 
         auto menu = CCMenu::create();
         menu->setPosition({ 0.f, 0.f });
-        menu->setContentSize({ 320.f, contentHeight });
+        menu->setContentSize({ scrollW, contentH });
         m_scroll->m_contentLayer->addChild(menu);
-
-        float clearY = contentHeight - (rowHeight * 0.5f);
-        auto clearBg = CCScale9Sprite::create("GJ_square01.png");
-        clearBg->setContentSize({ 310.f, 25.f });
-        clearBg->setColor({ 150, 50, 50 });
-        clearBg->setOpacity(180);
-
-        auto clearBtn = CCMenuItemSpriteExtra::create(clearBg, this, menu_selector(BadgeSelectPopup::onClearAll));
-        clearBtn->setPosition({ 160.f, clearY });
-        menu->addChild(clearBtn);
-
-        auto clearLbl = CCLabelBMFont::create("Clear All Badges", "bigFont.fnt");
-        clearLbl->setScale(0.35f);
-        clearLbl->setPosition({ 160.f, clearY });
-        m_scroll->m_contentLayer->addChild(clearLbl, 2);
 
         for (size_t i = 0; i < ALL_BADGES.size(); ++i) {
             const auto& badge = ALL_BADGES[i];
-            float y = contentHeight - (rowHeight * (static_cast<float>(i) + 1.5f));
+            int r = static_cast<int>(i) / cols;
+            int c = static_cast<int>(i) % cols;
+
+            float cx = (c + 0.5f) * cellW;
+            float cy = contentH - 5.f - (r + 0.5f) * cellH;
             bool equipped = hasBadgeID(m_targetAccountID, badge.id);
 
-            auto bg = CCScale9Sprite::create("GJ_square01.png");
-            bg->setContentSize({ 310.f, 25.f });
-            bg->setColor(equipped ? ccColor3B{ 55, 165, 80 } : ccColor3B{ 40, 45, 65 });
-            bg->setOpacity(185);
+            auto cardBg = CCScale9Sprite::create("square02b_001.png");
+            cardBg->setContentSize({ cellW - 6.f, cellH - 6.f });
+            cardBg->setColor({ 0, 0, 0 });
+            cardBg->setOpacity(75);
+            cardBg->setPosition({ cx, cy });
+            m_scroll->m_contentLayer->addChild(cardBg, 0);
 
-            auto btn = CCMenuItemSpriteExtra::create(bg, this, menu_selector(BadgeSelectPopup::onToggleBadge));
-            btn->setTag(badge.id);
-            btn->setPosition({ 160.f, y });
-            menu->addChild(btn);
-
-            auto icon = createBadgeNode(badge, 18.f);
-            icon->setPosition({ 34.f, y });
+            auto icon = createBadgeNode(badge, 30.f);
+            icon->setPosition({ cx, cy + 17.f });
             m_scroll->m_contentLayer->addChild(icon, 2);
 
-            auto nameLbl = CCLabelBMFont::create(badge.name.c_str(), "bigFont.fnt");
-            nameLbl->setAnchorPoint({ 0.f, 0.5f });
-            nameLbl->limitLabelWidth(195.f, 0.36f, 0.1f);
-            nameLbl->setPosition({ 64.f, y });
+            auto nameLbl = CCLabelBMFont::create(badge.name.c_str(), "goldFont.fnt");
+            nameLbl->limitLabelWidth(cellW - 10.f, 0.26f, 0.1f);
+            nameLbl->setPosition({ cx, cy - 3.f });
             m_scroll->m_contentLayer->addChild(nameLbl, 2);
 
-            if (equipped) {
-                auto check = CCSprite::createWithSpriteFrameName("GJ_completesIcon_001.png");
-                check->setScale(0.55f);
-                check->setPosition({ 292.f, y });
-                m_scroll->m_contentLayer->addChild(check, 2);
-            }
+            auto chkSpr = CCSprite::createWithSpriteFrameName(
+                equipped ? "GJ_checkOn_001.png" : "GJ_checkOff_001.png"
+            );
+            chkSpr->setScale(0.65f);
+
+            auto chkBtn = CCMenuItemSpriteExtra::create(chkSpr, this, menu_selector(BadgeSelectPopup::onToggleBadge));
+            chkBtn->setTag(badge.id);
+            chkBtn->setPosition({ cx, cy - 22.f });
+            menu->addChild(chkBtn);
         }
+
         m_scroll->m_contentLayer->setPositionY(prevY);
     }
 
     bool init(int accountID, std::string username, std::function<void()> onChanged) {
-        if (!Popup::init(360.f, 250.f)) return false;
+        if (!Popup::init(390.f, 260.f)) return false;
         m_targetAccountID = accountID;
         m_targetUsername = std::move(username);
         m_onChanged = std::move(onChanged);
-        this->setTitle(fmt::format("Badges: {} (Multi-Select)", m_targetUsername));
+        this->setTitle(fmt::format("Badges: {}", m_targetUsername));
 
-        m_scroll = ScrollLayer::create({ 320.f, 185.f });
-        m_scroll->setPosition({ 20.f, 22.f });
+        auto clearSpr = ButtonSprite::create("Clear", "goldFont.fnt", "GJ_button_06.png", 0.65f);
+        clearSpr->setScale(0.55f);
+        auto clearBtn = CCMenuItemSpriteExtra::create(clearSpr, this, menu_selector(BadgeSelectPopup::onClearAll));
+        clearBtn->setPosition({ 348.f, 238.f });
+        m_buttonMenu->addChild(clearBtn);
+
+        auto bg = CCScale9Sprite::create("square02b_001.png");
+        bg->setContentSize({ 356.f, 201.f });
+        bg->setColor({ 0, 0, 0 });
+        bg->setOpacity(95);
+        bg->setPosition({ 195.f, 118.f });
+        m_mainLayer->addChild(bg);
+
+        m_scroll = geode::ScrollLayer::create({ 350.f, 195.f });
+        m_scroll->setPosition({ 20.f, 20.f });
         m_mainLayer->addChild(m_scroll);
 
-        this->rebuildList();
+        this->rebuildGrid();
         m_scroll->moveToTop();
         return true;
     }
 
     void onToggleBadge(CCObject* sender) {
         toggleBadgeID(m_targetAccountID, sender->getTag());
-        this->rebuildList();
+        this->rebuildGrid();
         if (m_onChanged) m_onChanged();
     }
 
     void onClearAll(CCObject*) {
         saveAssignedBadgeIDs(m_targetAccountID, {});
-        this->rebuildList();
+        this->rebuildGrid();
         if (m_onChanged) m_onChanged();
     }
 
