@@ -41,9 +41,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
       - name: Combine .geode Artifacts
         uses: geode-sdk/build-geode-mod/combine@main
         id: build
+        with:
+          mod-path: custom-badges
 
       - name: Upload Final .geode
         uses: actions/upload-artifact@v4
