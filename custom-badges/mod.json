@@ -1,0 +1,34 @@
+{
+    "geode": "5.11.2",
+    "gd": {
+        "win": "2.2081",
+        "android": "2.2081"
+    },
+    "version": "v1.0.0",
+    "id": "therealcuber65.custom_badges",
+    "name": "Custom Badges",
+    "developer": "therealcuber65",
+    "description": "Adds vanilla and 26 custom badges with an in-game badge manager",
+    "dependencies": {
+        "geode.node-ids": ">=1.0.0"
+    },
+    "resources": {
+        "files": [
+            "resources/owner.png",
+            "resources/rater.png",
+            "resources/lb_owner.png",
+            "resources/lb_co_owner.png",
+            "resources/lb_head_admin.png",
+            "resources/lb_admin.png",
+            "resources/partner.png",
+            "resources/bot.png",
+            "resources/booster.png",
+            "resources/daily_winner.png",
+            "resources/weekly_winner.png",
+            "resources/best_player.png",
+            "resources/best_creator.png",
+            "resources/event_winner.png",
+            "resources/verified_creator.png"
+        ]
+    }
+}
