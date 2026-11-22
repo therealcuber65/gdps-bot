@@ -33,7 +33,7 @@ jobs:
         uses: geode-sdk/build-geode-mod@main
         with:
           target: ${{ matrix.target }}
-          working-directory: custom-badges
+          root: custom-badges
           configure-args: ${{ matrix.args }}
           combine: true
 
