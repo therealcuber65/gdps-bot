@@ -52,7 +52,7 @@ class $modify(MyProfilePage, ProfilePage) {
 
         std::vector<CCNode*> toRemove;
         for (auto* child : CCArrayExt<CCNode*>(usernameMenu->getChildren())) {
-            if (child->getID().starts_with("custom-profile-badge-"_spr)) {
+            if (std::string_view(child->getID()).starts_with("custom-profile-badge-"_spr)) {
                 toRemove.push_back(child);
             }
         }
