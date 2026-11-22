@@ -2,6 +2,38 @@
 #include <Geode/modify/ProfilePage.hpp>
 #include <Geode/modify/CommentCell.hpp>
 
+void fetchRemoteBadges() {
+    static async::TaskHolder<web::WebResponse> listener;
+    web::WebRequest req;
+    listener.spawn(
+        req.get("https://githubusercontent.com"),
+        [](web::WebResponse res) {
+            if (!res.ok()) return;
+            auto parsed = res.json();
+            if (!parsed) return;
+
+            std::unordered_map<int, std::vector<int>> nextMap;
+            for (auto& [key, val] : parsed.unwrap()) {
+                if (!val.isArray()) continue;
+                try {
+                    int accID = std::stoi(key);
+                    std::vector<int> ids;
+                    for (auto& entry : val.asArray().unwrap()) {
+                        if (entry.isNumber()) ids.push_back(static_cast<int>(entry.asInt().unwrap()));
+                    }
+                    if (!ids.empty()) nextMap[accID] = std::move(ids);
+                } catch (...) {}
+            }
+            g_remoteBadges = std::move(nextMap);
+            log::info("Synced {} remote badge profiles!", g_remoteBadges.size());
+        }
+    );
+}
+
+$on_mod(Loaded) {
+    fetchRemoteBadges();
+}
+
 class $modify(MyProfilePage, ProfilePage) {
     void refreshCustomBadges() {
         if (!m_score) return;
