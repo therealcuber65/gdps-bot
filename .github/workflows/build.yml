@@ -16,15 +16,15 @@ jobs:
           - name: Windows
             os: windows-latest
             target: Win64
-            args: -DCMAKE_CXX_FLAGS="-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"
+            args: -S custom-badges -DCMAKE_CXX_FLAGS="-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"
           - name: Android64
             os: ubuntu-latest
             target: Android64
-            args: ""
+            args: -S custom-badges
           - name: Android32
             os: ubuntu-latest
             target: Android32
-            args: ""
+            args: -S custom-badges
 
     steps:
       - uses: actions/checkout@v5
@@ -33,7 +33,6 @@ jobs:
         uses: geode-sdk/build-geode-mod@main
         with:
           target: ${{ matrix.target }}
-          root: custom-badges
           configure-args: ${{ matrix.args }}
           combine: true
 
