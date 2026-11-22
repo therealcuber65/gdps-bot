@@ -24,7 +24,7 @@ static const std::vector<BadgeDef> ALL_BADGES = {
     { 4,  "Owner",                        "owner.png",            false, "", { 255, 70,  70  } },
     { 5,  "Rater",                        "rater.png",            false, "", { 255, 200, 60  } },
     { 6,  "Leaderboard Mod: Owner",       "lb_owner.png",         false, "", { 80,  220, 255 } },
-    { 7,  "Leaderboard Mod: Co Owner",    "lb_co_owner.png",      false, "", { 80,  190, 255 } },
+    { 7,  "Leaderboard Mod: Co Owner",    "ld_co_owner.png",      false, "", { 80,  190, 255 } },
     { 8,  "Leaderboard Mod: Head Admin",  "lb_head_admin.png",    false, "", { 110, 160, 255 } },
     { 9,  "Leaderboard Mod: Admin",       "lb_admin.png",         false, "", { 140, 140, 255 } },
     { 10, "Partner",                      "partner.png",          false, "", { 120, 255, 140 } },
@@ -101,6 +101,7 @@ inline const BadgeDef* findBadgeByID(int badgeID) {
 
 inline CCNode* createBadgeNode(const BadgeDef& badge, float targetHeight = 20.f) {
     if (badge.isVanilla) {
+        CCSpriteFrameCache::get()->addSpriteFramesWithFile("GJ_GameSheet03.plist");
         if (auto spr = CCSprite::createWithSpriteFrameName(badge.vanillaFrame.c_str())) {
             spr->setScale(targetHeight / spr->getContentSize().height);
             return spr;
@@ -110,15 +111,14 @@ inline CCNode* createBadgeNode(const BadgeDef& badge, float targetHeight = 20.f)
         auto imgPath = Mod::get()->getResourcesDir() / badge.file;
         std::error_code ec;
         if (std::filesystem::exists(imgPath, ec) && std::filesystem::file_size(imgPath, ec) > 0) {
-            auto sprName = fmt::format("{}"_spr, badge.file);
-            if (auto spr = CCSprite::create(sprName.c_str())) {
+            if (auto spr = CCSprite::create(imgPath.string().c_str())) {
                 spr->setScale(targetHeight / spr->getContentSize().height);
                 return spr;
             }
         }
     }
     auto lbl = CCLabelBMFont::create(badge.name.c_str(), "bigFont.fnt");
-    lbl->setScale(0.24f);
+    lbl->limitLabelWidth(52.f, 0.22f, 0.08f);
     lbl->setColor(badge.fallbackColor);
     return lbl;
 }
