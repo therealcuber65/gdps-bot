@@ -1,0 +1,53 @@
+name: Build Geode Mod
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            target: Win64
+            args: -DCMAKE_CXX_FLAGS="-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"
+          - name: Android64
+            os: ubuntu-latest
+            target: Android64
+            args: ""
+          - name: Android32
+            os: ubuntu-latest
+            target: Android32
+            args: ""
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build Mod
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          target: ${{ matrix.target }}
+          working-directory: custom-badges
+          configure-args: ${{ matrix.args }}
+          combine: true
+
+  package:
+    name: Package Mod
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Combine .geode Artifacts
+        uses: geode-sdk/build-geode-mod/combine@main
+        id: build
+
+      - name: Upload Final .geode
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build Output
+          path: ${{ steps.build.outputs.build-output }}
